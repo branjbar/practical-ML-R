@@ -13,17 +13,21 @@ library(caret)
 myData <- read.csv("/Users/bian/sandbox/practical-ML-R/project/pml-training.csv")
 
 # split data into training and test sets
-inTrain <- createDataPartition(y=myData$classe, p=0.2, list=FALSE)
+inTrain <- createDataPartition(y=myData$classe, p=0.8, list=FALSE)
 training <- myData[inTrain,]
 testing <- myData[-inTrain,]
-trainng$output <- factor(training$classe,levels=c("A","B","C","D","E"), labels=c(1,2,3,4,5))
-testing$output <- factor(testing$classe,levels=c("A","B","C","D","E"), labels=c(1,2,3,4,5))
+
 
 # I start with a predictive model with three covariates
-pred <- train(output ~ roll_arm + pitch_arm + yaw_arm, method="lm", data=training)
-pred  # accuracy is 0.22
-confusionMatrix(predict(pred,testing), testing$classe)  # accuracy is 0.23
+modelFit <- train(classe ~ roll_arm + pitch_arm + yaw_arm,
+              method="rf", #ctree, rpart, gbm 
+              data=training)
 
+modelFit  # accuracy is 0.22
+
+confusionM <- confusionMatrix(predict(modelFit,testing), testing$classe)  
+confusionM$table
+plot(confusionM$table)
 
 
 
