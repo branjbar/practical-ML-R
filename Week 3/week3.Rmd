@@ -6,6 +6,8 @@ author: Bijan Ranjbar-Sahraei
 
 This is my first markdown R document. In this file I practice the 3rd week of Practical Machine Learning course.
 
+## Predicting with Trees
+
 First import the *iris* data and *ggplot2*
 ```{r}
 data(iris); library(ggplot2)
@@ -43,21 +45,32 @@ let's plot the output
 ```{r}
 qplot(Petal.Width, Sepal.Width, color=Species, data=training)
 ```
-we see very distinct colors which might be challenging for a linear model but not difficult for trees.
 
-Let's train a tree with *rpart* which is an R package for doing regression and classification trees.
+We see very distinct colors which might be challenging for a linear model but not difficult for trees. Let's train a tree with *rpart* which is an R package for doing regression and classification trees. 
+
 ```{r}
 modFit <- train(Species~., method="rpart", data=training) 
 modFit$finalModel
 ```
-
-we can also plot the real tree
+It's also possible to use *party* or *tree* methods, but need more tweeking.
+ 
+We can also plot the real tree in form of a dendrogram
 ```{r}
 plot(modFit$finalModel, uniform=TRUE, main="Classification Tree")
 text(modFit$finalModel, use.n=TRUE, all=TRUE, cex=.8)
 ```
-a prettier version can be plotted by the *rattle* package for which you might need *install.packages("RGtk2")* and *install.packages("rattle")*. 
+
+A prettier version of the dendrogram can be plotted by the *rattle* package for which you might need *install.packages("RGtk2")*, *install.packages("rattle")* and *install.packages('rpart.plot')*. I had to install *XQuartz.app*, too.
 ```{r}
 library(rattle)
 fancyRpartPlot(modFit$finalModel)
+```
+
+now we use the decision tree to make predictions. 
+```{r}
+pred <- predict(modFit, testing)
+confusionMatrix(pred,testing$Species)
+```
+
+## Bagging (Bootstrap Aggregating)
 
