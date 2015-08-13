@@ -1,5 +1,5 @@
 ---
-title: "Pracices of Week 3"
+title: "Practicing Week 3"
 output: html_document
 author: Bijan Ranjbar-Sahraei
 ---
@@ -73,4 +73,108 @@ confusionMatrix(pred,testing$Species)
 ```
 
 ## Bagging (Bootstrap Aggregating)
+Let's try the Ozone data this time. As the *ElmStatLearn* doesn't work for my package, so I directly read the data from e
+```{r results="hide"}
+ozone = read.table("~/sandbox/practical-ML-R/Week 3/ozone.data", header=TRUE)
+```
 
+Order the data based on its outcome *ozone*
+```{r}
+ozone <- ozone[order(ozone$ozone),]
+head(ozone)
+```
+We want to predict temprature as a function of ozone.
+
+### Bagged Loess (advanced)
+```{r}
+ll <- matrix(NA,nrow=10,ncol=155)
+for (i in 1:10){
+  ss <- sample(1:dim(ozone)[1],replace=T)
+  ozone0 <- ozone[ss,]; ozone0 <- ozone0[order(ozone0$ozone),]
+  loess0 <- loess(temperature ~ ozone,data=ozone0,span=0.2)  # loess is a smooth curve that you fit through the data, similar to the spline model fit
+  ll[i,] <- predict(loess0,newdata=data.frame(ozone=1:155))
+}
+```
+
+Let's plot it now.
+```{r}
+plot(ozone$ozone,ozone$temperature,pch=19,cex=0.5)
+for (i in 1:10) {lines(1:155,ll[i,],col="gray",lwd=2)}
+lines(1:155,apply(ll,2,mean),col="red",lwd=2)
+```
+The red line is the **bagged loess** curve which is actually the average of multiple feeded loess cruves which we sampled every time. the bagged loess have lower variability but the same bias as data.
+
+In *Caret* you can use bagged loess. In *train()* function we can use methods *bagEarth*, *treeBag*, or *bagFDA*. We can also use the *bag()* function. 
+
+You can build you own bagging in *caret*.
+```{r}
+predictors = data.frame(ozone=ozone$ozone)
+temprature = ozone$temperature
+treebag <- bag(predictors, temprature, B=10, 
+               bagControl = bagControl(fit=ctreeBag$fit,
+                                     predict = ctreeBag$pred,
+                                     aggregate = ctreeBag$aggregate))
+```
+
+Let's plot the results
+
+```{r}
+plot(ozone$ozone,ozone$temperature,col="lightgray",pch=19)
+points(ozone$ozone,predict(treebag$fits[[1]]$fit, predictors),pch=19,col="red") 
+points(ozone$ozone,predict(treebag, predictors),pch=19,col="blue")
+```
+
+In the above figure, we can see a single prediction in red is not a good prediction at all, though the aggregation in blue works pretty good. 
+
+
+## Random Forests
+
+Let's look at an example with *iris* database
+```{r}
+data(iris); library(ggplot2)
+inTrain <- createDataPartition(y=iris$Species,
+                             p=0.7, list=FALSE)
+training <- iris[inTrain,]
+testing <- iris[-inTrain,]
+```
+
+Now, let's feet a model
+```{r}
+modFit <- train(Species ~.,data=training,method="rf",
+                prox=TRUE)  # prox gives us extra informaiotn that we use in following plot
+modFit
+```
+
+we can look at a specific tree
+```{r}
+getTree(modFit$finalModel,k=2)
+```
+
+we can look at class centers
+
+```{r}
+irisP <- classCenter(training[,c(3,4)],training$Species,modFit$finalModel$prox)
+irisP <- as.data.frame(irisP); irisP$Species <- rownames(irisP)
+p <- qplot(Petal.Width, Petal.Length, col=Species, data=training)
+p + geom_point(aes(x=Petal.Width,y=Petal.Length,col=Species),size=5,shape=4,data=irisP)
+```
+
+Let's predict new values
+
+```{r}
+pred <- predict(modFit,testing)
+testing$predRight <- (pred==testing$Species)
+table(pred,testing$Species)
+```
+
+We might miss some samples but it's not the case here!
+
+```{r}
+qplot(Petal.Width,Petal.Length,color=predRight,data=testing,main="newdata prediction")
+```
+
+
+## Boosting
+
+
+## Model Based Prediction
