@@ -2,5 +2,6 @@
 Assignments of the Practical Machine Learning Course in R
 
 Please check the *index.Rmd* and *index.html* files for project writup.
-For a nice html report click here: http://branjbar.github.io/practical-ML-R/
+
+For a my report in html format click here: http://branjbar.github.io/practical-ML-R/
 
