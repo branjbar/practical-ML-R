@@ -7,7 +7,7 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 [View in GitHub](https://github.com/branjbar/practical-ML-R/tree/gh-pages)
 
 # Abstract
-In this writeup, I'm reporting my work on the *Assessment of Sport Activities* project of *Practical Machine Learning* course. By using a combination of manual explorations of data, and an efficient use of a decision tree, I was able to use just 10 infomative features and train a *Random Forest* to reach accuracy of 0.98. According to this precision, I expect the out of sample error to be about 0.98, as well. For the 20 verification samples, I expected 0.98 * 20 = 19.6 correct answers; indeed all my answers turned out to be correct according to the course website. 
+In this writeup, I'm reporting my work on the *Assessment of Sport Activities* project of *Practical Machine Learning* course. By using a combination of manual explorations of data, and an efficient use of a decision tree, I was able to use just 10 infomative features and train a *Random Forest* to reach accuracy of 0.98. According to the sensitivity of model which is 0.98, I expect the out of sample error to be about 0.98, as well. For the 20 verification samples, I expected 0.98 * 20 = 19.6 correct answers; indeed all my answers turned out to be correct according to the course website. 
 
 # Background 
 Six young health participants were asked to perform one set of 10 repetitions 
@@ -19,7 +19,7 @@ and throwing the hips to the front (Class E). For further reading we refer to <h
 The aim of this project is to train a prediction model which can analyse a UDBC activity using the available features and assess its quality as A, B, C, D or E.
 
 
-In the following, we start by understanding the problem at hand, then we continue by importing the data, and exploring the large featureset. Once a small set of important features are recognized we train a Random Forest model, and test it with the available datset. Finally the available verification data for 20 sample activities are use the evalute the prediction model; the model shows 100% accuracy in verifications. 
+In the following, we start by understanding the problem at hand, then we continue by importing the data, and exploring the large feature set. We detect a small set of important features and use them to train a Random Forest model, and test it with the available datset. Finally the available verification data for 20 sample activities are used the evalute the prediction model; the model shows 100% accuracy in verifications. 
 
 # Understanding the Problem at Hand
 In order to understand the problem at hand, we should know what type of activity UDBC is. The following link is a nice totorual for this activity by an expert. 
@@ -28,7 +28,7 @@ In order to understand the problem at hand, we should know what type of activity
 
 # Initialization
 Let's set a seed value to make sure the expertiments are repeatable. The packages *lattice*, *ggplot2*, *rattle* and *caret* are needed for this code.
-```{r results='hide', message=FALSE}
+```{r results="hide",message=FALSE,warning=FALSE}
 set.seed(3421)
 library(lattice)
 library(ggplot2)
@@ -71,6 +71,7 @@ featurePlot(x=training[,c("roll_arm","pitch_arm","pitch_belt","roll_belt")],
 ```
 
 I did this manual exploration of data for almost two hours, which was fun and helped me to understand the data much better. Eventually, I chose the following set of 21 features and the *classe* output as the *useful_features*; I beleive this subset introduces the most informative features in data. 
+
 ### Choosing Informative Features
 ```{r}
 useful_features = c("pitch_belt","roll_belt","yaw_belt","total_accel_belt",
@@ -81,7 +82,7 @@ useful_features = c("pitch_belt","roll_belt","yaw_belt","total_accel_belt",
                     "roll_forearm","max_roll_forearm","min_pitch_forearm","classe")
 ```
 
-Correspondingly, I define the *training_useful* and *testing_useful* datasets.
+Consequently, I define the *training_useful* and *testing_useful* datasets.
 ```{r}
 
 training_useful <- training[,useful_features]
@@ -98,23 +99,25 @@ knnTrain$classe <- training_useful$classe
 ```
 
 In this stage, I use a Decision Tree with aim of finding a smaller subset of informative features. Hopefully, Decision tree will pick a small subset of features for the decision tree. 
-```{r result='hide', message=FALSE}
-folds=2;repeats=2
+```{r result="hide", message=FALSE,warning=FALSE}
+folds=2; repeats=2
 fitControl <- trainControl(method="repeatedcv",number=folds,repeats=repeats,
                            classProbs=T,allowParallel=T)
 
 modelFit <- train(classe~., data=knnTrain,
-                  method="rpart",metric="ROC",
+                  method="rpart",
                   tuneLength=10,
                   trControl=fitControl)
 ```
+
 Let's visualize the tree and find the important features. 
+
 ```{r}
 fancyRpartPlot(modelFit$finalModel)
 ```
 
 
-Yess! Although, the accuracy of this tree is low (about 60%) it's only using 10 featueres. This suggests that the other features are not informative enough.
+Yess! Although, the accuracy of this tree is low (about 60%) it's only using 10 featueres (a few features have been used in more than one leaf). This suggests that the other features are not informative enough.
 
 ### Pronning the Feature Set
 Inspired by the shortlisted features after training a *tree* in previous section, I redefine the *useful_features* as following.
@@ -136,10 +139,18 @@ knnTrain$classe <- training_useful$classe
 
 # Training 
 Now, we train a Random Forest classifier which we expect to have a very high accuracy.
-```{r meassage=FALSE, results='hide'}
+```{r meassage=FALSE, results="hide"}
+
+folds=2; repeats=2
+fitControl <- trainControl(method="repeatedcv",number=folds,repeats=repeats,
+                           classProbs=T,
+                           allowParallel=T)
 
 modelFit <- train(classe~., data=knnTrain,
-                  method="rf")
+                  method="rf",
+                  metric="ROC",
+                  tuneLength=10,
+                  trControl=fitControl)
 
 modelFit$finalModel
 ```
