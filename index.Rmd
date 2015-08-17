@@ -4,6 +4,9 @@ output: html_document
 author: Bijan Ranjbar-Sahraei
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
+
+View in GitHub <https://github.com/branjbar/practical-ML-R/tree/gh-pages>
+
 # Background 
 Six young health participants were asked to perform one set of 10 repetitions 
 of the Unilateral Dumbbell Biceps Curl (UDBC) in five different fashions: exactly 
@@ -33,17 +36,17 @@ library(rattle)
 ### Loading data
 Before loading data, make sure the working directory is pointing to where the *pml-training.csv* is located. It's important to translate the *NA* and *#DIV/0!* strings in data import to the *NA* value known by R. 
 ```{r echo=FALSE}
-setwd("/Users/bian/sandbox/practical-ML-R/project/")
+setwd("/Users/bian/sandbox/practical-ML-R/")
 ```
 ```{r}
-myData <- read.csv("pml-training.csv", 
+myData <- read.csv("data/pml-training.csv", 
                    header=T,  
                    na.strings=c("NA", "#DIV/0!"))
 ```
 
 Also import the Validation data which consists of 20 sample activites. 
 ```{r}
-validationData <- read.csv("pml-testing.csv")
+validationData <- read.csv("data/pml-testing.csv")
 ```
 
 ### Seperate the Training and Testing Data
