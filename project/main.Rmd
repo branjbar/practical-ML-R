@@ -1,0 +1,175 @@
+---
+title: "Assessment of Sport Activities - Project Writup"
+output: html_document
+author: Bijan Ranjbar-Sahraei
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+---
+# Background 
+Six young health participants were asked to perform one set of 10 repetitions 
+of the Unilateral Dumbbell Biceps Curl (UDBC) in five different fashions: exactly 
+according to the specification (Class A), throwing the elbows to the front (Class B), 
+lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) 
+and throwing the hips to the front (Class E). For further reading we refer to <http://groupware.les.inf.puc-rio.br/har>
+
+The aim of this project is to train a prediction model which can analyse a UDBC activity using the available features and assess its quality as A, B, C, D or E.
+
+
+In the following, we start by understanding the problem at hand, then we continue by importing the data, and exploring the large featureset. Once a small set of important features are recognized we train a Random Forest model, and test it with the available datset. Finally the available verification data for 20 sample activities are use the evalute the prediction model; the model shows 100% accuracy in verifications. 
+
+# Understanding the Problem at Hand
+In order to understand the problem at hand, we should know what type of activity UDBC is. The following link is a nice totorual for this activity by an expert. 
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/YxtwA7XRK_g" frameborder="0" allowfullscreen></iframe>
+
+# Initialization
+We set a seed value to make sure the expertiments are repeatable. The packages *lattice*, *ggplot2*, *rattle* and *caret* are needed for this code.
+```{r results="hide"}
+set.seed(3421)
+library(lattice)
+library(ggplot2)
+library(caret)
+library(rattle)
+```
+### Loading data
+Before loading data, make sure the working directory is pointing to where the *pml-training.csv* is located. It's important to translate the *NA* and *#DIV/0!* values to the *NA* value known by R. 
+```{r echo=FALSE}
+setwd("/Users/bian/sandbox/practical-ML-R/project/")
+```
+```{r}
+myData <- read.csv("pml-training.csv", 
+                   header=T,  
+                   na.strings=c("NA", "#DIV/0!"))
+validationData <- read.csv("pml-testing.csv")
+```
+
+### Seperate the Training and Testing Data
+Here we split the *myData* into training and testing sets.
+```{r}
+inTrain <- createDataPartition(y=myData$classe,
+                               p=.8,
+                               list=FALSE)
+training <- myData[inTrain,]
+testing <- myData[-inTrain,]
+```
+
+###  Exploratory Analytics
+
+### Choosing Informative Features
+```{r}
+useful_features = c("pitch_belt","roll_belt","yaw_belt","total_accel_belt",
+                    "gyros_belt_y", "gyros_belt_z","accel_belt_y","magnet_belt_y",
+                    "roll_arm","pitch_arm","yaw_arm","avg_roll_arm","accel_arm_x",
+                    "avg_roll_dumbbell","gyros_dumbbell_x","magnet_dumbbell_x","accel_dumbbell_y","magnet_dumbbell_z",
+                    "roll_forearm","max_roll_forearm","min_pitch_forearm","classe")
+  
+
+training_useful <- training[,useful_features]
+testing_useful <- testing[,useful_features]
+```
+
+
+####  Imputing the NA Values
+
+```{r}
+preObj <- preProcess(training_useful[,-22], method="knnImpute") 
+knnTrain <- predict(preObj, training_useful[,-22])
+knnTrain$classe <- training_useful$classe
+```
+
+We use a Decision Tree to find the informative featues.
+```{r}
+folds=2
+repeats=2
+fitControl <- trainControl(method="repeatedcv",number=folds,repeats=repeats,
+classProbs=T,
+allowParallel=T)
+
+modelFit <- train(classe~., data=knnTrain,
+                  method="rpart",metric="ROC",
+                  tuneLength=10,
+                  trControl=fitControl)
+
+modelFit  
+
+fancyRpartPlot(modelFit$finalModel)
+```
+
+# Training 
+
+### Pronning the Feature Set
+Although, the decision tree is not very accurate, it helps us to find a smaller collection of very informative features. Thus, we redefine the *useful_features* as following.
+``` {r}
+useful_features = c("roll_belt","max_roll_forearm","yaw_belt","magnet_dumbbell_z",
+                    "accel_dumbbell_y", "pitch_belt","accel_belt_y","magnet_dumbbell_x",
+                    "magnet_belt_y","magnet_dumbbell_z","classe")
+
+training_useful <- training[,useful_features]
+testing_useful <- testing[,useful_features]
+
+```
+Once more, we perform the KNN Imputation.
+```{r}
+preObj <- preProcess(training_useful[,-11], method="knnImpute") 
+knnTrain <- predict(preObj, training_useful[,-11])
+knnTrain$classe <- training_useful$classe
+```
+
+Now, we train a Random Forest classifier which we expect to have a very high accuracy.
+```{r}
+folds=2
+repeats=2
+fitControl <- trainControl(method="repeatedcv",number=folds,repeats=repeats,
+classProbs=T,
+allowParallel=T)
+
+modelFit <- train(classe~., data=knnTrain,
+                  method="gbm",
+                  metric="ROC",
+                  tuneLength=10,
+                  trControl=fitControl)
+
+```
+
+
+# Testing
+```{r}
+knnTest <- predict(preObj, testing_useful[,-11])
+confusionM <- confusionMatrix(predict(modelFit,knnTest), testing_useful$classe)  
+confusionM
+confusionM$table
+plot(confusionM$table)
+```
+
+# Validation
+In order to validate the results we predict the validation data provided in Course Project.
+```{r}
+validating <- validationData[useful_features[-11]]
+knnValid <- predict(preObj, validating[,-11])
+answers = predict(modelFit,knnValid)
+answers
+```
+
+### Submit Answers
+```{r}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(answers)
+
+```
+
+# Further Reading
+Here are some existing projects on internet which do the same task.
+
+<https://rpubs.com/jocaqui/26619>
+
+<https://github.com/jeffheaton/jhi-practical-machine-learning/blob/master/PracticalMachineLearning.RMD>
+
+<http://emres.github.io/practical-ml/>
+
+<http://rstudio-pubs-static.s3.amazonaws.com/20131_7fca728506724c27bc629081983f0ec2.html>
+
