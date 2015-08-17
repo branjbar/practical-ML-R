@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .Rproj.user
 .Rhistory
 .RData
@@ -9,5 +10,7 @@ project/problem_id_6_wrong.txt
 *.pdf
 
 *.Rproj
+=======
+>>>>>>> gh-pages
 
 *.txt
