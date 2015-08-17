@@ -31,7 +31,7 @@ library(caret)
 library(rattle)
 ```
 ### Loading data
-Before loading data, make sure the working directory is pointing to where the *pml-training.csv* is located. It's important to translate the *NA* and *#DIV/0!* values to the *NA* value known by R. 
+Before loading data, make sure the working directory is pointing to where the *pml-training.csv* is located. It's important to translate the *NA* and *#DIV/0!* strings in data import to the *NA* value known by R. 
 ```{r echo=FALSE}
 setwd("/Users/bian/sandbox/practical-ML-R/project/")
 ```
@@ -39,14 +39,18 @@ setwd("/Users/bian/sandbox/practical-ML-R/project/")
 myData <- read.csv("pml-training.csv", 
                    header=T,  
                    na.strings=c("NA", "#DIV/0!"))
+```
+
+Also import the Validation data which consists of 20 sample activites. 
+```{r}
 validationData <- read.csv("pml-testing.csv")
 ```
 
 ### Seperate the Training and Testing Data
-Here we split the *myData* into training and testing sets.
+Here we split the *myData* into training and testing sets, where 70% of data is assigned to training set.
 ```{r}
 inTrain <- createDataPartition(y=myData$classe,
-                               p=.8,
+                               p=.7,
                                list=FALSE)
 training <- myData[inTrain,]
 testing <- myData[-inTrain,]
@@ -54,6 +58,8 @@ testing <- myData[-inTrain,]
 
 ###  Exploratory Analytics
 
+
+Using the manual explorations of data which took me almost an hour, I chose the following set of 22 features including the *classe* output, which I consider them as the informative features in data. 
 ### Choosing Informative Features
 ```{r}
 useful_features = c("pitch_belt","roll_belt","yaw_belt","total_accel_belt",
@@ -61,7 +67,10 @@ useful_features = c("pitch_belt","roll_belt","yaw_belt","total_accel_belt",
                     "roll_arm","pitch_arm","yaw_arm","avg_roll_arm","accel_arm_x",
                     "avg_roll_dumbbell","gyros_dumbbell_x","magnet_dumbbell_x","accel_dumbbell_y","magnet_dumbbell_z",
                     "roll_forearm","max_roll_forearm","min_pitch_forearm","classe")
-  
+```
+
+Correspondingly, I define the *training_useful* and *testing_useful* datasets.
+```{r}
 
 training_useful <- training[,useful_features]
 testing_useful <- testing[,useful_features]
@@ -69,14 +78,14 @@ testing_useful <- testing[,useful_features]
 
 
 ####  Imputing the NA Values
-
+As many of the values are missing among the useful features, we need to do some impuation. Thus, the following.
 ```{r}
 preObj <- preProcess(training_useful[,-22], method="knnImpute") 
 knnTrain <- predict(preObj, training_useful[,-22])
 knnTrain$classe <- training_useful$classe
 ```
 
-We use a Decision Tree to find the informative featues.
+In this stage, I use a Decision Tree with aim of finding a smaller subset of informative features. Hopefully, Decision tree will pick a small subset of features for the decision tree. 
 ```{r}
 folds=2
 repeats=2
@@ -94,10 +103,11 @@ modelFit
 fancyRpartPlot(modelFit$finalModel)
 ```
 
-# Training 
+
+Yess! Although, the accuracy of this model is not very high (about 60%) it's just using 10 of the featueres. Probably the other features are not informative enough. 
 
 ### Pronning the Feature Set
-Although, the decision tree is not very accurate, it helps us to find a smaller collection of very informative features. Thus, we redefine the *useful_features* as following.
+Let's use the results of previous section to redefine the *useful_features* as following.
 ``` {r}
 useful_features = c("roll_belt","max_roll_forearm","yaw_belt","magnet_dumbbell_z",
                     "accel_dumbbell_y", "pitch_belt","accel_belt_y","magnet_dumbbell_x",
@@ -107,13 +117,14 @@ training_useful <- training[,useful_features]
 testing_useful <- testing[,useful_features]
 
 ```
-Once more, we perform the KNN Imputation.
+For the new feature set perform the KNN Imputation.
 ```{r}
 preObj <- preProcess(training_useful[,-11], method="knnImpute") 
 knnTrain <- predict(preObj, training_useful[,-11])
 knnTrain$classe <- training_useful$classe
 ```
 
+# Training 
 Now, we train a Random Forest classifier which we expect to have a very high accuracy.
 ```{r}
 folds=2
@@ -123,15 +134,18 @@ classProbs=T,
 allowParallel=T)
 
 modelFit <- train(classe~., data=knnTrain,
-                  method="gbm",
+                  method="rf",
                   metric="ROC",
                   tuneLength=10,
                   trControl=fitControl)
 
+modelFit$finalModel
 ```
 
+Yessss, the results are very promissing, and the model has a high accuracy. 
 
 # Testing
+Here we use testing dataset to test the model. Before, that we use the knn imputation to replce the not available data values in testing set.
 ```{r}
 knnTest <- predict(preObj, testing_useful[,-11])
 confusionM <- confusionMatrix(predict(modelFit,knnTest), testing_useful$classe)  
@@ -139,6 +153,7 @@ confusionM
 confusionM$table
 plot(confusionM$table)
 ```
+
 
 # Validation
 In order to validate the results we predict the validation data provided in Course Project.
@@ -149,7 +164,8 @@ answers = predict(modelFit,knnValid)
 answers
 ```
 
-### Submit Answers
+### Submiting Answers
+To submit the answers, following course puts each response in a file with appropriate name.
 ```{r}
 pml_write_files = function(x){
   n = length(x)
