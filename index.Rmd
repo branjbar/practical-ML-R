@@ -1,11 +1,13 @@
 ---
 title: "Assessment of Sport Activities - Project Writup"
 output: html_document
-author: Bijan Ranjbar-Sahraei
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 
-View in GitHub <https://github.com/branjbar/practical-ML-R/tree/gh-pages>
+[View in GitHub](https://github.com/branjbar/practical-ML-R/tree/gh-pages)
+
+# Abstract
+In this writeup, I'm reporting my work on the *Assessment of Sport Activities* project of *Practical Machine Learning* course. By using a combination of manual explorations of data, and an efficient use of a decision tree, I was able to use just 10 infomative features and train a *Random Forest* to reach accuracy of 0.98. According to this precision, I expect the out of sample error to be about 0.98, as well. For the 20 verification samples, I expected 0.98 * 20 = 19.6 correct answers; indeed all my answers turned out to be correct according to the course website. 
 
 # Background 
 Six young health participants were asked to perform one set of 10 repetitions 
@@ -25,14 +27,15 @@ In order to understand the problem at hand, we should know what type of activity
 <iframe width="560" height="315" src="https://www.youtube.com/embed/YxtwA7XRK_g" frameborder="0" allowfullscreen></iframe>
 
 # Initialization
-We set a seed value to make sure the expertiments are repeatable. The packages *lattice*, *ggplot2*, *rattle* and *caret* are needed for this code.
-```{r results="hide"}
+Let's set a seed value to make sure the expertiments are repeatable. The packages *lattice*, *ggplot2*, *rattle* and *caret* are needed for this code.
+```{r results='hide', message=FALSE}
 set.seed(3421)
 library(lattice)
 library(ggplot2)
 library(caret)
 library(rattle)
 ```
+
 ### Loading data
 Before loading data, make sure the working directory is pointing to where the *pml-training.csv* is located. It's important to translate the *NA* and *#DIV/0!* strings in data import to the *NA* value known by R. 
 ```{r echo=FALSE}
@@ -50,7 +53,7 @@ validationData <- read.csv("data/pml-testing.csv")
 ```
 
 ### Seperate the Training and Testing Data
-Here we split the *myData* into training and testing sets, where 70% of data is assigned to training set.
+Here we split the *Data* into training and testing sets, where 70% of data is assigned to training set.
 ```{r}
 inTrain <- createDataPartition(y=myData$classe,
                                p=.7,
@@ -60,15 +63,21 @@ testing <- myData[-inTrain,]
 ```
 
 ###  Exploratory Analytics
+For exploring the data, as the number of features is very large, I use the *Feature Plot* of Caret to visualize the features and find the most informative piars. For instance, in following feature plot, we see that the selected features which are *roll_arm*, *pitch_arm*, *pitch_belt*, and *roll_belt* to some extent can seperate differnt classes.
+```{r}
+featurePlot(x=training[,c("roll_arm","pitch_arm","pitch_belt","roll_belt")],
+				y=training$classe,
+				plot="pairs")
+```
 
-
-Using the manual explorations of data which took me almost an hour, I chose the following set of 22 features including the *classe* output, which I consider them as the informative features in data. 
+I did this manual exploration of data for almost two hours, which was fun and helped me to understand the data much better. Eventually, I chose the following set of 21 features and the *classe* output as the *useful_features*; I beleive this subset introduces the most informative features in data. 
 ### Choosing Informative Features
 ```{r}
 useful_features = c("pitch_belt","roll_belt","yaw_belt","total_accel_belt",
                     "gyros_belt_y", "gyros_belt_z","accel_belt_y","magnet_belt_y",
                     "roll_arm","pitch_arm","yaw_arm","avg_roll_arm","accel_arm_x",
-                    "avg_roll_dumbbell","gyros_dumbbell_x","magnet_dumbbell_x","accel_dumbbell_y","magnet_dumbbell_z",
+                    "avg_roll_dumbbell","gyros_dumbbell_x","magnet_dumbbell_x",
+                    "accel_dumbbell_y","magnet_dumbbell_z",
                     "roll_forearm","max_roll_forearm","min_pitch_forearm","classe")
 ```
 
@@ -89,28 +98,26 @@ knnTrain$classe <- training_useful$classe
 ```
 
 In this stage, I use a Decision Tree with aim of finding a smaller subset of informative features. Hopefully, Decision tree will pick a small subset of features for the decision tree. 
-```{r}
-folds=2
-repeats=2
+```{r result='hide', message=FALSE}
+folds=2;repeats=2
 fitControl <- trainControl(method="repeatedcv",number=folds,repeats=repeats,
-classProbs=T,
-allowParallel=T)
+                           classProbs=T,allowParallel=T)
 
 modelFit <- train(classe~., data=knnTrain,
                   method="rpart",metric="ROC",
                   tuneLength=10,
                   trControl=fitControl)
-
-modelFit  
-
+```
+Let's visualize the tree and find the important features. 
+```{r}
 fancyRpartPlot(modelFit$finalModel)
 ```
 
 
-Yess! Although, the accuracy of this model is not very high (about 60%) it's just using 10 of the featueres. Probably the other features are not informative enough. 
+Yess! Although, the accuracy of this tree is low (about 60%) it's only using 10 featueres. This suggests that the other features are not informative enough.
 
 ### Pronning the Feature Set
-Let's use the results of previous section to redefine the *useful_features* as following.
+Inspired by the shortlisted features after training a *tree* in previous section, I redefine the *useful_features* as following.
 ``` {r}
 useful_features = c("roll_belt","max_roll_forearm","yaw_belt","magnet_dumbbell_z",
                     "accel_dumbbell_y", "pitch_belt","accel_belt_y","magnet_dumbbell_x",
@@ -129,18 +136,10 @@ knnTrain$classe <- training_useful$classe
 
 # Training 
 Now, we train a Random Forest classifier which we expect to have a very high accuracy.
-```{r}
-folds=2
-repeats=2
-fitControl <- trainControl(method="repeatedcv",number=folds,repeats=repeats,
-classProbs=T,
-allowParallel=T)
+```{r meassage=FALSE, results='hide'}
 
 modelFit <- train(classe~., data=knnTrain,
-                  method="rf",
-                  metric="ROC",
-                  tuneLength=10,
-                  trControl=fitControl)
+                  method="rf")
 
 modelFit$finalModel
 ```
@@ -148,47 +147,32 @@ modelFit$finalModel
 Yessss, the results are very promissing, and the model has a high accuracy. 
 
 # Testing
-Here we use testing dataset to test the model. Before, that we use the knn imputation to replce the not available data values in testing set.
+Here we use testing dataset to test the model. Before, that we use the knn imputation to replace the not available data values in testing set.
 ```{r}
 knnTest <- predict(preObj, testing_useful[,-11])
 confusionM <- confusionMatrix(predict(modelFit,knnTest), testing_useful$classe)  
 confusionM
-confusionM$table
-plot(confusionM$table)
 ```
 
 
 # Validation
-In order to validate the results we predict the validation data provided in Course Project.
+In order to validate the results, we apply the KNN imputation on the feature sets, and make predictions of the validation data provided in Course Project.
 ```{r}
 validating <- validationData[useful_features[-11]]
 knnValid <- predict(preObj, validating[,-11])
 answers = predict(modelFit,knnValid)
-answers
 ```
 
 ### Submiting Answers
-To submit the answers, following course puts each response in a file with appropriate name.
+To submit the answers, following code puts each prediction in a file with appropriate name.
 ```{r}
 pml_write_files = function(x){
   n = length(x)
   for(i in 1:n){
-    filename = paste0("problem_id_",i,".txt")
+    filename = paste0("data/problem_id_",i,".txt")
     write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
   }
 }
 pml_write_files(answers)
 
 ```
-
-# Further Reading
-Here are some existing projects on internet which do the same task.
-
-<https://rpubs.com/jocaqui/26619>
-
-<https://github.com/jeffheaton/jhi-practical-machine-learning/blob/master/PracticalMachineLearning.RMD>
-
-<http://emres.github.io/practical-ml/>
-
-<http://rstudio-pubs-static.s3.amazonaws.com/20131_7fca728506724c27bc629081983f0ec2.html>
-
