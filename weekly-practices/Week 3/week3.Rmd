@@ -75,7 +75,7 @@ confusionMatrix(pred,testing$Species)
 ## Bagging (Bootstrap Aggregating)
 Let's try the Ozone data this time. As the *ElmStatLearn* doesn't work for my package, so I directly read the data from e
 ```{r results="hide"}
-ozone = read.table("~/sandbox/practical-ML-R/Week 3/ozone.data", header=TRUE)
+ozone = read.table("~/sandbox/practical-ML-R/weekly-practices/Week 3/ozone.data", header=TRUE)
 ```
 
 Order the data based on its outcome *ozone*
@@ -176,6 +176,55 @@ qplot(Petal.Width,Petal.Length,color=predRight,data=testing,main="newdata predic
 
 
 ## Boosting
+```{r}
+library(ISLR); data(Wage); library(ggplot2); library(caret);
+Wage <- subset(Wage,select=-c(logwage))
+inTrain <- createDataPartition(y=Wage$wage,p=0.7,list=FALSE)
+training <- Wage[inTrain,]; testing <- Wage[-inTrain,]
 
+modFit <- train(wage ~ .,
+                method="gbm",  # boosting with trees
+                data=training,
+                verbose=FALSE  # otherwise it will make a lot of outputs
+                )
+
+modFit
+```
+
+Let's plot the predicted results
+
+``` {r}
+qplot(predict(modFit,testing), wage, data=testing)
+```
 
 ## Model Based Prediction
+
+```{r}
+data(iris); library(ggplot2)
+names(iris)
+table(iris$Species)
+
+inTrain <- createDataPartition(y=iris$Species,p=0.7,list=FALSE)
+training <- iris[inTrain,]; testing <- iris[-inTrain,]
+```
+
+Build Predictions
+
+```{r}
+modlda <- train(Species~.,
+                data=training,
+                method="lda")  # Linear Discriminant Analysis
+modnb <- train(Species~.,
+                data=training,
+                method="nb")  # Naive Bayes
+
+plda <- predict(modlda, testing)
+pnb <- predict(modnb, testing)
+table(plda,pnb)
+
+equalPredictions <- (plda==pnb)
+qplot(Petal.Width, Sepal.Width,color=equalPredictions,data=testing)
+```
+
+
+
