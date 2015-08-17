@@ -135,7 +135,6 @@ allowParallel=T)
 
 modelFit <- train(classe~., data=knnTrain,
                   method="rf",
-                  metric="ROC",
                   tuneLength=10,
                   trControl=fitControl)
 
@@ -179,7 +178,7 @@ pml_write_files(answers)
 ```
 
 # Further Reading
-Here are some existing projects on internet which do the same task.
+Interested reader can also check the other available writeups on internet.
 
 <https://rpubs.com/jocaqui/26619>
 

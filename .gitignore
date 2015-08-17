@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+
+project/problem_id_6_wrong.txt
+
+*.csv
+
+*.pdf
+
+*.Rproj
+
+*.txt
