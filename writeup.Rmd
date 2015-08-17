@@ -148,6 +148,7 @@ fitControl <- trainControl(method="repeatedcv",number=folds,repeats=repeats,
 
 modelFit <- train(classe~., data=knnTrain,
                   method="rf",
+                  metric="ROC",
                   tuneLength=10,
                   trControl=fitControl)
 
@@ -186,18 +187,3 @@ pml_write_files = function(x){
 pml_write_files(answers)
 
 ```
-<<<<<<< HEAD:project/main.Rmd
-
-# Further Reading
-Interested reader can also check the other available writeups on internet.
-
-<https://rpubs.com/jocaqui/26619>
-
-<https://github.com/jeffheaton/jhi-practical-machine-learning/blob/master/PracticalMachineLearning.RMD>
-
-<http://emres.github.io/practical-ml/>
-
-<http://rstudio-pubs-static.s3.amazonaws.com/20131_7fca728506724c27bc629081983f0ec2.html>
-
-=======
->>>>>>> gh-pages:index.Rmd
